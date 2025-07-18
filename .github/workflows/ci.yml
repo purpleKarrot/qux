@@ -1,0 +1,56 @@
+# Copyright 2025 Daniel Pfeifer <daniel@pfeifer-mail.de>
+# This work is free. You can redistribute it and/or modify it under the
+# terms of the Do What The Fuck You Want To Public License, Version 2,
+# as published by Sam Hocevar. See http://www.wtfpl.net/ for more details.
+
+name: CI
+permissions: { contents: write }
+
+on:
+  pull_request:
+  push:
+    tags: ['*']
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            cc: clang
+          - os: ubuntu-24.04
+            cc: gcc
+          - os: windows-2025
+            cc: gcc
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: >
+          cmake -B build -G "Ninja Multi-Config"
+          -DCMAKE_DEBUG_POSTFIX:STRING=d
+          -DCMAKE_GNUtoMS:BOOL=ON
+          -DCPACK_ARCHIVE_COMPONENT_INSTALL:BOOL=ON
+        env:
+          CC: ${{ matrix.cc }}
+
+      - name: Build Debug
+        run: cmake --build build --config Debug
+
+      - name: Build Release
+        run: cmake --build build --config Release
+
+      - name: Create Packages
+        run: cpack -C "Debug;Release" -G TGZ
+        working-directory: build
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: build/*.tar.gz
