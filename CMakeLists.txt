@@ -5,7 +5,8 @@
 
 cmake_minimum_required(VERSION 3.31)
 project(Qux
-  VERSION 1.0.0
+  VERSION 1.1.0
+  HOMEPAGE_URL "https://github.com/purpleKarrot/qux"
   LANGUAGES C
   )
 
@@ -26,6 +27,21 @@ target_sources(qux
 get_target_property(qux_type qux TYPE)
 if(qux_type STREQUAL "STATIC_LIBRARY")
   target_compile_definitions(qux PUBLIC qux_STATIC foo)
+endif()
+
+if(qux_type STREQUAL "SHARED_LIBRARY")
+  configure_file(
+    ${Qux_SOURCE_DIR}/qux.rc.in
+    ${Qux_BINARY_DIR}/qux.rc.in
+    )
+
+  file(GENERATE
+    OUTPUT ${Qux_BINARY_DIR}/qux-$<CONFIG>.rc
+    INPUT  ${Qux_BINARY_DIR}/qux.rc.in
+    TARGET Qux::qux
+    )
+
+  target_sources(qux PRIVATE ${Qux_BINARY_DIR}/qux-$<CONFIG>.rc)
 endif()
 
 set_target_properties(qux PROPERTIES
